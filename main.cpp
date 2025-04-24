@@ -3,6 +3,7 @@
 #include <fstream>
 #include "Tile.h"
 #include <stdlib.h>
+#include <sstream>
 #include "TextureManager.h"
 #include <vector>
 
@@ -34,7 +35,7 @@ void WriteText(sf::RenderWindow& window, std::string text, bool bold, bool under
     window.draw(word);
 }
 
-void Window(sf::RenderWindow &window, int type, int row, int col, float width, float height, std::string& username) {
+void Window(sf::RenderWindow &window, int type, int row, int col, float width, float height, string& username) {
     if (type == 1) {
         window.clear(sf::Color::Blue);
         WriteText(window, "WELCOME TO MINESWEEPER!", true, true, sf::Color::White, 24, (width/2), ((height/2)-150));
@@ -45,7 +46,10 @@ void Window(sf::RenderWindow &window, int type, int row, int col, float width, f
         window.clear(sf::Color::White);
         // WriteText(window, "Game Screen...", true, true, sf::Color::Black, 28, (width/2), ((height/2)-250));
         // WriteText(window, ("Hello " + username), true, false, sf::Color::Black, 30, (width/2), ((height/2)-150));
-
+    }
+    if (type == 3) {
+        window.clear(sf::Color::Blue);
+        WriteText(window, "LEADERBOARD", true, true, sf::Color::White, 20, (width/2), ((height/2)+20));
     }
 }
 
@@ -75,7 +79,97 @@ void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf:
     }
 }
 
-void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row, int mines) {
+void Leaderboard(sf::RenderWindow &window, string& username, bool win = false) {
+    string path = "files/leaderboard.txt";
+    vector<int> times;
+    bool special;
+    if (win) {
+        ofstream outp(path);
+        if (!outp.is_open()) {
+            std::cerr << "Error opening file" << std::endl;
+            return;
+        }
+        outp << "00:00" << username << std::endl;
+    }
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Error opening file" << endl;
+        return;
+    }
+
+    // Use parallel vectors instead of pair
+    vector<int> hours;
+    vector<int> minutes;
+    vector<string> names;
+
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string hStr, mStr, name;
+
+        if (getline(ss, hStr, ':') && getline(ss, mStr, ',') && getline(ss, name)) {
+            hours.push_back(stoi(hStr));
+            minutes.push_back(stoi(mStr));
+            names.push_back(name);
+        }
+    }
+    int specialIndex;
+    if (special) {
+        specialIndex = hours.size()-1;
+    }
+    // Sort based on hours and minutes (selection sort-style)
+    for (int i = 0; i < hours.size(); ++i) {
+        for (int j = i + 1; j < hours.size(); ++j) {
+            // Compare times
+            if ((hours[j] < hours[i]) || (hours[j] == hours[i] && minutes[j] < minutes[i])) {
+                // Swap hours
+                int tempH = hours[i];
+                hours[i] = hours[j];
+                hours[j] = tempH;
+
+                // Swap minutes
+                int tempM = minutes[i];
+                minutes[i] = minutes[j];
+                minutes[j] = tempM;
+
+                // Swap names
+                string tempN = names[i];
+                names[i] = names[j];
+                names[j] = tempN;
+
+                if (i == specialIndex)
+                    specialIndex = j;
+                else if (j == specialIndex)
+                    specialIndex = i;
+            }
+        }
+    }
+
+    // Rebuild into one big string
+    string longtext;
+    int five;
+    if (hours.size() > 5) {
+        five = 5;
+    } else {
+        five = hours.size();
+    }
+
+    for (int i = 0; i < five; i++) {
+        string shour = (hours[i] < 10 ? "0" : "") + to_string(hours[i]);
+        string smins = (minutes[i] < 10 ? "0" : "") + to_string(minutes[i]);
+
+        longtext += to_string(i + 1) + ".\t" + shour + ":" + smins + "\t" + names[i];
+
+        // Optional: add asterisk for a new record (example)
+        if (special && i == specialIndex) {
+            longtext += "*";
+        }
+
+        longtext += "\n\n";
+    }
+}
+
+void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row, int mines, int width, int height, string& username) {
 
     vector<sf::Texture> tilesforfunction;
     sf::Texture up_texture = text.text("hidden");
@@ -141,6 +235,9 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     bool blockButton = false;
     bool debugMode = false;
     bool firstClick = true;
+    bool win;
+    bool paused = false;
+    bool pauseButton = false;
 
     // Mainloop
     while (window.isOpen()) {
@@ -194,16 +291,33 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                     blockClick = false;
                                     blockButton = false;
                                     firstClick = true;
+                                    paused = false;
+                                    pauseButton = false;
                                 }
-                                if (button.getName() == "debug" && !blockButton) {
+                                if (button.getName() == "debug" && !blockButton && !pauseButton) {
                                     debugMode = !debugMode;
                                 }
                                 if (button.getName() == "pause" && !blockButton) {
                                     cout << button.getName() << " is working bub" << endl;
+                                    paused = !paused;
+                                    if (paused) {
+                                        buttons[2].setTexture(text.text("play"));
+                                    } else {
+                                        buttons[2].setTexture(text.text("pause"));
+                                    }
+                                    blockClick = !blockClick;
+                                    pauseButton = !pauseButton;
+
                                 }
                                 if (button.getName() == "leaderboard") {
-                                    int b = 3;
                                     cout << button.getName() << " is working bub" << endl;
+                                    sf::RenderWindow leader(sf::VideoMode((row*16)+50, (col*16)), "LEADERBOARD");
+                                    Window(leader, 3, row, col, width, height, username);
+                                    paused = !paused;
+                                    if (!pauseButton) {
+                                        blockClick = !blockClick;
+                                        blockButton = !blockButton;
+                                    }
                                 }
                             }
                         }
@@ -214,7 +328,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
         // Render loop
         window.clear(sf::Color::White);
         for (Tile& tile: tiles) {
-            tile.draw(window, debugMode);
+            tile.draw(window, debugMode, (paused || pauseButton));
         }
         for (Button& button: buttons) {
             button.draw(window);
@@ -224,8 +338,8 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
 }
 
 int main() {
-    std::string path = "files/config.cfg";
-    std::ifstream file(path);
+    string path = "files/config.cfg";
+    ifstream file(path);
     if (!file.is_open()) {
         std::cerr << "Error opening file" << std::endl;
         return 1;
@@ -293,7 +407,7 @@ int main() {
         sf::RenderWindow gameWindow(sf::VideoMode(width, height), "Game Screen");
         Window(gameWindow, 2, row, col, width, height, username);
         TextureManager texture;
-        GameScreen(gameWindow,texture, col, row, mines);
+        GameScreen(gameWindow,texture, col, row, mines, width, height, username);
     }
     return 0;
 }

@@ -10,8 +10,6 @@ using namespace std;
 enum TileState {
     Up,
     Down,
-    Bomb,
-    Flag
 };
 
 class Tile {
@@ -21,6 +19,7 @@ class Tile {
     const sf::Texture* flag_texture;
     vector<sf::Texture>* number_textures;
 
+    sf::Sprite revealedSprite;
     sf::Sprite baseSprite;
     sf::Sprite flagSprite;
     sf::Sprite mineSprite;
@@ -31,7 +30,7 @@ class Tile {
     bool hasFlag = false;
     int adjacentMines;
     bool lose = false;
-
+    // bool revealed = false;
     int x, y;
 
 public:
@@ -40,6 +39,10 @@ public:
     // ,isMine(isMine), hasFlag(hasFlag), state(Up), adjacentMines(0)
     {
         this->state = Up;
+
+        revealedSprite.setTexture(*down_texture);
+        revealedSprite.setPosition(x,y);
+
         baseSprite.setTexture(*up_texture);
         baseSprite.setPosition(x, y);
 
@@ -52,15 +55,15 @@ public:
     sf::Sprite& get_sprite() {
         return baseSprite;
     }
-    sf::Sprite& get_flagSprite() {
-        return flagSprite;
-    }
-    sf::Sprite& get_MineSprite() {
-        return mineSprite;
-    }
-    sf::Sprite& get_numSprite() {
-        return numberSprite;
-    }
+    // sf::Sprite& get_flagSprite() {
+    //     return flagSprite;
+    // }
+    // sf::Sprite& get_MineSprite() {
+    //     return mineSprite;
+    // }
+    // sf::Sprite& get_numSprite() {
+    //     return numberSprite;
+    // }
 
     TileState getState() {
         return state;
@@ -77,15 +80,12 @@ public:
     void click() {
         if (state == Up && !hasFlag) {
             baseSprite.setTexture(*down_texture);
-            if (isMine) {
+            if (isMine && !hasFlag) {
                 mineSprite.setTexture(*mine_texture);
+                state = Down;
+                lose = true;
             }
             state = Down;
-        }
-        if (isMine && !hasFlag) {
-            baseSprite.setTexture(*mine_texture);
-            state = Down;
-            lose = true;
         }
     }
 
@@ -107,14 +107,18 @@ public:
         adjacentMines = count;
     }
 
-    void draw(sf::RenderWindow& window, bool debugMode) {
+    // void toggleRevealedText() {
+    //     revealed = !revealed;
+    // }
+
+    void draw(sf::RenderWindow& window, bool debugMode, bool paused) {
         window.draw(baseSprite);
 
         if (state == Up && hasFlag) {
             window.draw(flagSprite);
         }
 
-        if (state == Down) {
+        else if (state == Down) {
             if (isMine) {
                 window.draw(mineSprite);
             } else if (adjacentMines > 0) {
@@ -125,6 +129,10 @@ public:
 
         if (debugMode && isMine) {
             window.draw(mineSprite);
+        }
+
+        if (paused) {
+            window.draw(revealedSprite);
         }
 
     }
