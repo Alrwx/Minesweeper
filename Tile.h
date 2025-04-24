@@ -2,7 +2,8 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>
-#include <iostream>
+#include "TextureManager.h"
+// #include <iostream> testing out w/ cout
 
 
 using namespace std;
@@ -13,6 +14,7 @@ enum TileState {
 };
 
 class Tile {
+
     const sf::Texture* up_texture;
     const sf::Texture* down_texture;
     const sf::Texture* mine_texture;
@@ -51,19 +53,12 @@ public:
 
         mineSprite.setTexture(*mine_texture);
         mineSprite.setPosition(x, y);
+
+        numberSprite.setPosition(x, y);
     }
     sf::Sprite& get_sprite() {
         return baseSprite;
     }
-    // sf::Sprite& get_flagSprite() {
-    //     return flagSprite;
-    // }
-    // sf::Sprite& get_MineSprite() {
-    //     return mineSprite;
-    // }
-    // sf::Sprite& get_numSprite() {
-    //     return numberSprite;
-    // }
 
     TileState getState() {
         return state;
@@ -107,10 +102,6 @@ public:
         adjacentMines = count;
     }
 
-    // void toggleRevealedText() {
-    //     revealed = !revealed;
-    // }
-
     void draw(sf::RenderWindow& window, bool debugMode, bool paused) {
         window.draw(baseSprite);
 
@@ -122,6 +113,7 @@ public:
             if (isMine) {
                 window.draw(mineSprite);
             } else if (adjacentMines > 0) {
+                numberSprite.setTexture((*number_textures)[adjacentMines-1]);
                 window.draw(numberSprite);
             }
             // Nothing extra to draw for adjacentMines == 0

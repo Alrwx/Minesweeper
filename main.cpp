@@ -2,11 +2,9 @@
 #include <SFML/Graphics.hpp>
 #include <fstream>
 #include "Tile.h"
-#include <stdlib.h>
 #include <sstream>
 #include "TextureManager.h"
 #include <vector>
-
 #include "Button.h"
 
 using namespace std;
@@ -35,7 +33,7 @@ void WriteText(sf::RenderWindow& window, std::string text, bool bold, bool under
     window.draw(word);
 }
 
-void Window(sf::RenderWindow &window, int type, int row, int col, float width, float height, string& username) {
+void Window(sf::RenderWindow &window, int type, int row, int col, float width, float height, const string& username) {
     if (type == 1) {
         window.clear(sf::Color::Blue);
         WriteText(window, "WELCOME TO MINESWEEPER!", true, true, sf::Color::White, 24, (width/2), ((height/2)-150));
@@ -49,7 +47,7 @@ void Window(sf::RenderWindow &window, int type, int row, int col, float width, f
     }
     if (type == 3) {
         window.clear(sf::Color::Blue);
-        WriteText(window, "LEADERBOARD", true, true, sf::Color::White, 20, (width/2), ((height/2)+20));
+        WriteText(window, "LEADERBOARD", true, true, sf::Color::White, 20, width/2, ((height/2) + 20));
     }
 }
 
@@ -57,8 +55,9 @@ void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf:
     tiles.clear();
 
     for (int x = 0; x < col; x++) {
-        for (int y = 0; y < row; y ++) {
+        for (int y = 0; y < row; y++) {
             tiles.emplace_back(texters[0], texters[1], texters[2], texters[3], numbers, x * 32, y * 32);
+
         }
     }
 
@@ -72,29 +71,54 @@ void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf:
     while (placedMines < mines) {
         int randIndex = std::rand() % totalTiles;
 
-        if (randIndex != startIndex || !tiles[randIndex].IsMine()) {
+        if (randIndex != startIndex && !tiles[randIndex].IsMine()) {
             tiles[randIndex].toggleMine();
             placedMines++;
         }
     }
+
+    for (int y = 0; y < row; y++) {
+        for (int x = 0; x < col; x++) {
+            int count = 0;
+            int place = x * col + y;
+
+            int aroundXes[] = {-1,0,1,-1,1,-1,0,1};
+            int aroundYes[] = {-1,-1,-1,0,0,1,1,1};
+
+            for (int i = 0; i < 8; i++) {
+                int adjX = x + aroundXes[i];
+                int adjY = y + aroundYes[i];
+
+                if (adjX >= 0 && adjX < col && adjY >= 0 && adjY < row) {
+                    int adjPlace = adjX * col + adjY;
+                    if (tiles[adjPlace].IsMine()) {
+                        count++;
+                    }
+                }
+            }
+            tiles[place].setAdjMines(count);
+        }
+    }
 }
 
-void Leaderboard(sf::RenderWindow &window, string& username, bool win = false) {
+string LeaderboardInfo(string& username, bool win = false) {
+    string longtext;
     string path = "files/leaderboard.txt";
     vector<int> times;
     bool special;
     if (win) {
-        ofstream outp(path);
+        ofstream outp(path, ios::app);
         if (!outp.is_open()) {
             std::cerr << "Error opening file" << std::endl;
-            return;
+            return longtext;
         }
-        outp << "00:00" << username << std::endl;
+        outp << "\n00:00" << ", " << username;
+        outp.close();
     }
     ifstream file(path);
     if (!file.is_open()) {
         cerr << "Error opening file" << endl;
-        return;
+        return longtext;
     }
 
     // Use parallel vectors instead of pair
@@ -110,6 +134,7 @@ void Leaderboard(sf::RenderWindow &window, string& username, bool win = false) {
         if (getline(ss, hStr, ':') && getline(ss, mStr, ',') && getline(ss, name)) {
             hours.push_back(stoi(hStr));
             minutes.push_back(stoi(mStr));
+            name = name.substr(1);
             names.push_back(name);
         }
     }
@@ -146,7 +171,6 @@ void Leaderboard(sf::RenderWindow &window, string& username, bool win = false) {
     }
 
     // Rebuild into one big string
-    string longtext;
     int five;
     if (hours.size() > 5) {
         five = 5;
@@ -166,6 +190,24 @@ void Leaderboard(sf::RenderWindow &window, string& username, bool win = false) {
         }
 
         longtext += "\n\n";
+    }
+    return longtext;
+}
+
+void LeaderboardScreen(sf::RenderWindow& window, string& longtext, float width, float height) {
+    while (window.isOpen()) {
+        // Event loop
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            // Close event
+            if (event.type == sf::Event::EventType::Closed) {
+                window.close();
+                break;
+            }
+        }
+        window.clear(sf::Color::Blue);
+        WriteText(window, longtext, true, false, sf::Color::White, 18, width, height);
+        window.display();
     }
 }
 
@@ -211,8 +253,8 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     float butY = (row + 0.5) * 32;
     float screenWidth = col * tileSize;
 
-    float faceX = (screenWidth / 2.0f) - tileSize;
-    float debugX = screenWidth - (tileSize * 9.5f);
+    float faceX = ((col / 2.0f) * tileSize) - tileSize;
+    float debugX = screenWidth - (tileSize * 9.5f); //just changed it so it would work dynamically instead of through fixed numbers
     float pauseX = screenWidth - (tileSize * 7.5f);
     float leaderboardX = screenWidth - (tileSize * 5.5f);
 
@@ -235,13 +277,30 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     bool blockButton = false;
     bool debugMode = false;
     bool firstClick = true;
-    bool win;
+    bool win = false;
     bool paused = false;
     bool pauseButton = false;
+    bool leaderscreen = false;
 
     // Mainloop
     while (window.isOpen()) {
         // Event loop
+        if (leaderscreen) {
+            height = (row*16) + 50;
+            width = (col * 16);
+            sf::RenderWindow leader(sf::VideoMode(width, height), "LEADERBOARD");
+            Window(leader, 3, row, col, width, height, username);
+            string bigtext = LeaderboardInfo(username, win);
+            int twidth = width/2;
+            int theight = (height/2) + 20;
+            LeaderboardScreen(leader, bigtext, twidth, theight);
+            leaderscreen = false;
+            paused = !paused;
+            if (!pauseButton) {
+                blockClick = !blockClick;
+                blockButton = !blockButton;
+            }
+        }
         sf::Event event;
         while (window.pollEvent(event)) {
             // Close event
@@ -311,13 +370,12 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                 }
                                 if (button.getName() == "leaderboard") {
                                     cout << button.getName() << " is working bub" << endl;
-                                    sf::RenderWindow leader(sf::VideoMode((row*16)+50, (col*16)), "LEADERBOARD");
-                                    Window(leader, 3, row, col, width, height, username);
                                     paused = !paused;
                                     if (!pauseButton) {
                                         blockClick = !blockClick;
                                         blockButton = !blockButton;
                                     }
+                                    leaderscreen = !leaderscreen;
                                 }
                             }
                         }
