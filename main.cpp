@@ -266,12 +266,14 @@ bool checkWin(vector<Tile>& tiles, int col, int row, int mines, int rCount, bool
         blockClick = true;
 
         for (Tile& tile : tiles) {
-            if (tile.IsMine()) {
+            if (tile.IsMine() && !tile.getHasFlag()) {
                 tile.toggleFlag();
             }
         }
+        return true;
     }
-    return win;
+
+    return false;
 }
 
 vector<int> counterDigits(int mines) {
@@ -436,7 +438,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
 
             sf::RenderWindow leader(sf::VideoMode(width, height), "Leaderboard Window");
             Window(leader, 3, row, col, (float)width, (float)height, username);
-            string bigtext = LeaderboardInfo(username, win, fleader, showTime);
+            string bigtext = LeaderboardInfo(username, win, false, showTime);
 
             auto now = chrono::high_resolution_clock::now();
             totalTime += chrono::duration_cast<chrono::seconds>(now - startTime).count(); // freeze timer
@@ -495,13 +497,18 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                     int tileclickrow = click.y / 32;
                                     RecReveal(tiles, tileclickcol, tileclickrow, col, row, rCount);
                                 } else {
-                                    tile.click();
-                                    rCount++;
+                                    if (!tile.isRevealed()) {
+                                        tile.click();
+                                        rCount++;
+                                    }
+
                                 }
 
                                 if (checkWin(tiles, col, row, mines, rCount, win, blockClick, blockButton)) {
                                     buttons[0].setTexture(text.text("win"));
                                     debugMode = false;
+
+                                    LeaderboardInfo(username, true, true, showTime);
                                 }
                                 if (tile.didIlose()) {
                                     buttons[0].setTexture(text.text("lose"));
@@ -654,5 +661,3 @@ int main() {
     }
     return 0;
 }
-
-
