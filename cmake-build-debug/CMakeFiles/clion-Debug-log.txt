@@ -20,6 +20,6 @@ CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
 -- Found SFML 2.5.1 in C:/SFML-2.5.1/lib/cmake/SFML
--- Configuring done (1.9s)
+-- Configuring done (3.2s)
 -- Generating done (0.1s)
 -- Build files have been written to: C:/Users/Alvin/CLionProjects/Projects/Minesweeper/cmake-build-debug

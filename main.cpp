@@ -389,6 +389,8 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     auto startTime = chrono::high_resolution_clock::now();
     int totalTime = 0;
     int showTime = 0;
+    int totalPauseTime = 0;
+    chrono::high_resolution_clock::time_point pauseStartTime;
 
     vector<Tile> tiles;
 
@@ -425,6 +427,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     int rCount = 0;
     bool fleader = true;
     int flagsPlaced = 0;
+    bool actuallyPaused = false;
 
 
     // Mainloop
@@ -442,17 +445,16 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
             totalTime += chrono::duration_cast<chrono::seconds>(now - startTime).count(); // freeze timer
 
             LeaderboardScreen(leader, bigtext, width, height);
-
             fleader = false;
 
             startTime = chrono::high_resolution_clock::now();
 
             leaderscreen = false;
             paused = !paused;
-            if (!pauseButton) {
-                blockClick = !blockClick;
-                blockButton = !blockButton;
-            }
+
+            blockClick = false;
+            blockButton = false;
+
         }
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -526,8 +528,10 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                     debugMode = false;
                                     blockClick = false;
                                     blockButton = false;
+                                    actuallyPaused = false;
                                     firstClick = true;
                                     paused = false;
+                                    buttons[2].setTexture(text.text("pause"));
                                     pauseButton = false;
                                     win = false;
                                     rCount = 0;
@@ -539,16 +543,34 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                 }
                                 if (button.getName() == "debug" && !blockButton && !pauseButton) {
                                     debugMode = !debugMode;
+                                    if (debugMode) {
+                                        cout << "debugMode turned on" << endl;
+                                    } else {
+                                        cout << "debugMode turned off" << endl;
+                                    }
                                 }
                                 if (button.getName() == "pause" && !blockButton) {
                                     paused = !paused;
                                     if (paused) {
+                                        actuallyPaused = true;
                                         buttons[2].setTexture(text.text("play"));
+
                                         auto now = chrono::high_resolution_clock::now();
                                         totalTime += chrono::duration_cast<chrono::seconds>(now - startTime).count();
+
+                                        pauseStartTime = chrono::high_resolution_clock::now();
+                                        cout << "..." << endl;
                                     } else {
+                                        actuallyPaused = false;
                                         buttons[2].setTexture(text.text("pause"));
+
+                                        auto now = chrono::high_resolution_clock::now();
+                                        int pauseDuration = chrono::duration_cast<chrono::seconds>(now - pauseStartTime).count();
+                                        totalPauseTime += pauseDuration;
+
+                                        cout << "Paused for " << pauseDuration << " seconds. Total pause time: " << totalPauseTime << " seconds."<< endl;
                                         startTime = chrono::high_resolution_clock::now();
+
                                     }
                                     blockClick = !blockClick;
                                     pauseButton = !pauseButton;
@@ -556,11 +578,11 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                 }
                                 if (button.getName() == "leaderboard") {
                                     paused = true;
-                                    if (!pauseButton) {
-                                        blockClick = !blockClick;
-                                        blockButton = !blockButton;
-                                    }
-                                    leaderscreen = !leaderscreen;
+                                    // if (!pauseButton) {
+                                    blockClick = true;
+                                    blockButton = true;
+                                    // }
+                                    leaderscreen = true;
                                 }
                             }
                         }
@@ -575,7 +597,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
         // Render loop
         window.clear(sf::Color::White);
         for (Tile& tile: tiles) {
-            tile.draw(window, debugMode, (paused || pauseButton));
+            tile.draw(window, debugMode, (actuallyPaused || paused));
         }
         drawMineCount(window, text, mines - flagsPlaced, row);
         drawTimer(window, text, showTime, row, col);
