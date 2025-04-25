@@ -60,10 +60,6 @@ public:
         return baseSprite;
     }
 
-    TileState getState() {
-        return state;
-    }
-
     bool IsMine() {
         return isMine;
     }
@@ -75,9 +71,8 @@ public:
     void click() {
         if (state == Up && !hasFlag) {
             baseSprite.setTexture(*down_texture);
-            if (isMine && !hasFlag) {
+            if (isMine) {
                 mineSprite.setTexture(*mine_texture);
-                state = Down;
                 lose = true;
             }
             state = Down;
@@ -100,6 +95,24 @@ public:
 
     void setAdjMines(int count) {
         adjacentMines = count;
+    }
+
+    int getAdjMines() {
+        return adjacentMines;
+    }
+
+    bool isRevealed() {
+        if (state == Down) {
+            return true;
+        }
+        return false;
+    }
+
+    void reveal() {
+        if (state == Up && !hasFlag) {
+            baseSprite.setTexture(*down_texture);
+            state = Down;
+        }
     }
 
     void draw(sf::RenderWindow& window, bool debugMode, bool paused) {

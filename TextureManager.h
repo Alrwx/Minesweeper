@@ -7,14 +7,12 @@ using namespace std;
 class TextureManager {
 private:
     map<string, sf::Texture> textures;
+    map<int, sf::Texture> clockTime;
 public:
     TextureManager() {
         sf::Texture debug;
         debug.loadFromFile("files/images/debug.png");
         textures["debug"] = debug;
-        sf::Texture digits;
-        digits.loadFromFile("files/images/digits.png");
-        textures["digits"] = digits;
         sf::Texture face_happy;
         face_happy.loadFromFile("files/images/face_happy.png");
         textures["happy"] = face_happy;
@@ -69,8 +67,28 @@ public:
         sf::Texture tile_revealed;
         tile_revealed.loadFromFile("files/images/tile_revealed.png");
         textures["revealed"] = tile_revealed;
+
+
+        sf::Texture digits;
+        digits.loadFromFile("files/images/digits.png");
+        // textures["digits"] = digits;
+
+        // all the nums
+        for (int i = 0; i <= 9; i++) {
+            sf::Texture digit;
+            digit.loadFromImage(digits.copyToImage(), sf::IntRect(i*21, 0, 21, 32));
+            clockTime[i] = digit;
+        }
+
+        //annoying minus sign
+        sf::Texture minussign;
+        minussign.loadFromImage(digits.copyToImage(), sf::IntRect(10*21, 0, 21, 32));
+        clockTime[10] = minussign;
     }
     const sf::Texture& text(const string& name) const {
         return textures.at(name);
+    }
+    const sf::Texture& dig(const int digit) const {
+        return clockTime.at(digit);
     }
 };

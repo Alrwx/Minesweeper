@@ -6,6 +6,7 @@
 #include "TextureManager.h"
 #include <vector>
 #include "Button.h"
+#include <chrono>
 
 using namespace std;
 
@@ -15,7 +16,8 @@ void setText(sf::Text &text, float x, float y){
     text.setPosition(sf::Vector2f(x, y));
 }
 
-void WriteText(sf::RenderWindow& window, std::string text, bool bold, bool underline, sf::Color color, int size, float x, float y) {
+void WriteText(sf::RenderWindow& window, const std::string& text, bool bold, bool underline, sf::Color color, int size, float x, float y) {
+    //simple stuff, writes the text
     sf::Font font;
     font.loadFromFile("files/font.ttf");
     sf::Text word(text, font, size);
@@ -28,12 +30,14 @@ void WriteText(sf::RenderWindow& window, std::string text, bool bold, bool under
         word.setStyle(sf::Text::Underlined);
     }
 
+    //centering
     setText(word, x, y);
 
     window.draw(word);
 }
 
 void Window(sf::RenderWindow &window, int type, int row, int col, float width, float height, const string& username) {
+    //this function lays the base for the window
     if (type == 1) {
         window.clear(sf::Color::Blue);
         WriteText(window, "WELCOME TO MINESWEEPER!", true, true, sf::Color::White, 24, (width/2), ((height/2)-150));
@@ -54,13 +58,14 @@ void Window(sf::RenderWindow &window, int type, int row, int col, float width, f
 void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf::Texture>& texters, vector<sf::Texture>& numbers, int startIndex = -1) {
     tiles.clear();
 
+    //makes all the tiles
     for (int x = 0; x < col; x++) {
         for (int y = 0; y < row; y++) {
             tiles.emplace_back(texters[0], texters[1], texters[2], texters[3], numbers, x * 32, y * 32);
 
         }
     }
-
+    //doesn't genertate bombs if startIndex is -1, should only happen for first click
     if (startIndex == -1) {
         return;
     }
@@ -68,20 +73,24 @@ void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf:
     int totalTiles = col * row;
     int placedMines = 0;
 
+    //randomly makes the tiles into bombs
     while (placedMines < mines) {
-        int randIndex = std::rand() % totalTiles;
+        int randIndex = rand() % totalTiles;
 
         if (randIndex != startIndex && !tiles[randIndex].IsMine()) {
             tiles[randIndex].toggleMine();
             placedMines++;
+
+            // cout << "bomb tile: " << randIndex << "----" << endl;
         }
     }
 
-    for (int y = 0; y < row; y++) {
-        for (int x = 0; x < col; x++) {
+    for (int x = 0; x < col; x++) {
+        for (int y = 0; y < row; y++) {
             int count = 0;
-            int place = x * col + y;
+            int place = x * row + y;
 
+            //adjacent areas to the tile, like bottom left, bottom mid, bottom right, etc.
             int aroundXes[] = {-1,0,1,-1,1,-1,0,1};
             int aroundYes[] = {-1,-1,-1,0,0,1,1,1};
 
@@ -90,30 +99,34 @@ void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf:
                 int adjY = y + aroundYes[i];
 
                 if (adjX >= 0 && adjX < col && adjY >= 0 && adjY < row) {
-                    int adjPlace = adjX * col + adjY;
+                    int adjPlace = adjX * row + adjY;
                     if (tiles[adjPlace].IsMine()) {
                         count++;
                     }
                 }
             }
+            //gives the current tile the adj count that we found previously
             tiles[place].setAdjMines(count);
         }
     }
 }
 
-string LeaderboardInfo(string& username, bool win = false) {
+string LeaderboardInfo(string& username, bool win = false, bool first = false) {
     string longtext;
     string path = "files/leaderboard.txt";
     vector<int> times;
     bool special;
-    if (win) {
-        ofstream outp(path, ios::app);
-        if (!outp.is_open()) {
-            std::cerr << "Error opening file" << std::endl;
-            return longtext;
+    //if the player won, puts their time into the file
+    if (first) {
+        if (win) {
+            ofstream outp(path, ios::app);
+            if (!outp.is_open()) {
+                std::cerr << "Error opening file" << std::endl;
+                return longtext;
+            }
+            outp << "\n00:00" << ", " << username;
+            outp.close();
         }
-        outp << "\n00:00" << ", " << username;
-        outp.close();
     }
     ifstream file(path);
     if (!file.is_open()) {
@@ -121,7 +134,6 @@ string LeaderboardInfo(string& username, bool win = false) {
         return longtext;
     }
 
-    // Use parallel vectors instead of pair
     vector<int> hours;
     vector<int> minutes;
     vector<string> names;
@@ -138,11 +150,12 @@ string LeaderboardInfo(string& username, bool win = false) {
             names.push_back(name);
         }
     }
+    //make sure the special index doesn't get lost
     int specialIndex;
     if (special) {
         specialIndex = hours.size()-1;
     }
-    // Sort based on hours and minutes (selection sort-style)
+    //reads the file, seperates them into hours : minutes, compares the hours to hours, then if they are the same compare the minutes, if its smaller than they swap essentially
     for (int i = 0; i < hours.size(); ++i) {
         for (int j = i + 1; j < hours.size(); ++j) {
             // Compare times
@@ -169,15 +182,14 @@ string LeaderboardInfo(string& username, bool win = false) {
             }
         }
     }
-
-    // Rebuild into one big string
+    //since its only top 5, it takes either the first 5, or if the leaderboard txt has less than 5
     int five;
     if (hours.size() > 5) {
         five = 5;
     } else {
         five = hours.size();
     }
-
+    // makes one really big string
     for (int i = 0; i < five; i++) {
         string shour = (hours[i] < 10 ? "0" : "") + to_string(hours[i]);
         string smins = (minutes[i] < 10 ? "0" : "") + to_string(minutes[i]);
@@ -194,25 +206,134 @@ string LeaderboardInfo(string& username, bool win = false) {
     return longtext;
 }
 
-void LeaderboardScreen(sf::RenderWindow& window, string& longtext, float width, float height) {
+void LeaderboardScreen(sf::RenderWindow& window, const string& longtext, float width, float height) {
     while (window.isOpen()) {
-        // Event loop
         sf::Event event;
         while (window.pollEvent(event)) {
-            // Close event
             if (event.type == sf::Event::EventType::Closed) {
                 window.close();
                 break;
             }
         }
         window.clear(sf::Color::Blue);
-        WriteText(window, longtext, true, false, sf::Color::White, 18, width, height);
+        WriteText(window, "LEADERBOARD", true, true, sf::Color::White, 20, width/2, ((height/2) - 120));
+        WriteText(window, longtext, true, false, sf::Color::White, 18, width/2, height/2 + 20);
         window.display();
     }
 }
 
-void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row, int mines, int width, int height, string& username) {
+void RecReveal(vector<Tile>& tiles, int x, int y, int col, int row, int& rcount) {
+    int place = x * row + y;
 
+    //base case
+    if (tiles[place].isRevealed() || tiles[place].IsMine() || tiles[place].getHasFlag()) {
+        return;
+    }
+
+    tiles[place].reveal();
+    rcount++;
+
+    if (tiles[place].getAdjMines() > 0) {
+        return;
+    }
+
+    //adjacent areas to the tile, like bottom left, bottom mid, bottom right, etc.
+    int aroundXes[] = {-1,0,1,-1,1,-1,0,1};
+    int aroundYes[] = {-1,-1,-1,0,0,1,1,1};
+
+    //neighboring tiles
+    for (int i = 0; i < 8; i++) {
+        int adjX = x + aroundXes[i];
+        int adjY = y + aroundYes[i];
+
+        //checks bounds of grid
+        if (adjX >= 0 && adjX < col && adjY >= 0 && adjY < row) {
+            RecReveal(tiles, adjX, adjY, col, row, rcount);
+        }
+    }
+}
+
+bool checkWin(vector<Tile>& tiles, int col, int row, int mines, int rCount, bool& win, bool& blockClick, bool& blockButton) {
+    //sees if the revealed count = the number of non-mine spaces
+    if (rCount == (col * row - mines)) {
+        win = true;
+        blockButton = true;
+        blockClick = true;
+
+        for (Tile& tile : tiles) {
+            if (tile.IsMine()) {
+                tile.toggleFlag();
+            }
+        }
+    }
+    return win;
+}
+
+vector<int> counterDigits(int mines) {
+    vector<int> counterDigits;
+    bool neg = false;;
+    if (mines < 0) {
+        neg = true;
+    }
+    int tmines = abs(mines);
+
+    //annoying minus sign
+    if (neg) {
+        counterDigits.push_back(10);
+    }
+    counterDigits.push_back(tmines / 100);
+    counterDigits.push_back((tmines / 10) % 10);
+    counterDigits.push_back(tmines % 10);
+
+    return counterDigits;
+}
+
+vector<int> timerDigits(int ttime) {
+    int minutes = ttime / 60;
+    int seconds = ttime % 60;
+
+    vector<int> digits;
+
+    digits.push_back(minutes / 10);       // Minute tens
+    digits.push_back(minutes % 10);       // Minute ones
+    digits.push_back(seconds / 10);       // Second tens
+    digits.push_back(seconds % 10);       // Second ones
+
+    return digits;
+}
+
+
+void drawMineCount(sf::RenderWindow& window, TextureManager& tex, int mines, int row) {
+    vector<int> digits = counterDigits(mines);
+    bool neg = false;
+    if (digits[0] == 10) {
+        neg = true;
+    }
+    int negative = 0;
+    float y = 32 * (row + 0.5f) + 16;
+    if (neg) {
+        sf::Sprite minus;
+        minus.setTexture(tex.dig(10));
+        minus.setPosition(12,y);
+        window.draw(minus);
+        negative = 1;
+    }
+
+    for (int i = negative; i < digits.size(); i++) {
+        sf::Sprite digit;
+        digit.setTexture(tex.dig(digits[i]));
+        digit.setPosition((33 + 21 * (i - negative)), y);
+        window.draw(digit);
+    }
+}
+
+void drawTimer(sf::RenderWindow& window, TextureManager tex, int time, int row, int col) {
+    vector<int> digits = timerDigits(time);
+    float y = 32 * (row + 0.5f) + 16;
+
+    float minX;
+}
+void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row, int mines, int width, int height, string& username) {
     vector<sf::Texture> tilesforfunction;
     sf::Texture up_texture = text.text("hidden");
     sf::Texture down_texture = text.text("revealed");
@@ -243,6 +364,11 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     numbers.push_back(num6);
     numbers.push_back(num7);
     numbers.push_back(num8);
+
+    //time
+    auto startTime = chrono::high_resolution_clock::now();
+    int timepassed = 0;
+    bool tfreeze = false;
 
     // Create the tiles
     vector<Tile> tiles;
@@ -281,19 +407,21 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     bool paused = false;
     bool pauseButton = false;
     bool leaderscreen = false;
+    int rCount = 0;
+    bool fleader = true;
+    int flagsPlaced = 0;
 
     // Mainloop
     while (window.isOpen()) {
         // Event loop
         if (leaderscreen) {
-            height = (row*16) + 50;
+            height = ((row*16) + 50);
             width = (col * 16);
-            sf::RenderWindow leader(sf::VideoMode(width, height), "LEADERBOARD");
-            Window(leader, 3, row, col, width, height, username);
-            string bigtext = LeaderboardInfo(username, win);
-            int twidth = width/2;
-            int theight = (height/2) + 20;
-            LeaderboardScreen(leader, bigtext, twidth, theight);
+            sf::RenderWindow leader(sf::VideoMode(width, height), "Leaderboard Window");
+            Window(leader, 3, row, col, (float)width, (float)height, username);
+            string bigtext = LeaderboardInfo(username, win, fleader);
+            fleader = false;
+            LeaderboardScreen(leader, bigtext, width, height);
             leaderscreen = false;
             paused = !paused;
             if (!pauseButton) {
@@ -310,12 +438,17 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
             }
             if (event.type == sf::Event::EventType::MouseButtonPressed) {
                 auto click = event.mouseButton;
-                cout << click.x << " , " << click.y << endl;
+                // cout << click.x << " , " << click.y << endl;
                 if (event.mouseButton.button == sf::Mouse::Right) {
                     for (Tile& tile: tiles) {
                         if (tile.get_sprite().getGlobalBounds().contains(click.x, click.y) && !blockClick) {
+                            bool Flag = tile.getHasFlag();
                             tile.toggleFlag();
-                            cout << "Right click, flag placed" << endl;
+                            if (!Flag) {
+                                flagsPlaced++;
+                            } else {
+                                flagsPlaced--;
+                            }
                         }
                     }
                 }
@@ -326,11 +459,25 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                 if (firstClick) {
                                     int firstClickedCol = click.x / 32;
                                     int firstClickedRow = click.y / 32;
-                                    int firstClickedTile = firstClickedRow * col + firstClickedCol;
+                                    int firstClickedTile = firstClickedCol * row + firstClickedRow;
                                     generateRandom(tiles, row, col, mines, tilesforfunction, numbers, firstClickedTile);
                                     firstClick = false;
                                 }
-                                tile.click();
+                                if (tile.IsMine()) {
+                                    tile.click();
+                                } else if (tile.getAdjMines() == 0) {
+                                    int tileclickcol = click.x / 32;
+                                    int tileclickrow = click.y / 32;
+                                    RecReveal(tiles, tileclickcol, tileclickrow, col, row, rCount);
+                                } else {
+                                    tile.click();
+                                    rCount++;
+                                }
+
+                                if (checkWin(tiles, col, row, mines, rCount, win, blockClick, blockButton)) {
+                                    buttons[0].setTexture(text.text("win"));
+                                    debugMode = false;
+                                }
                                 if (tile.didIlose()) {
                                     buttons[0].setTexture(text.text("lose"));
                                     debugMode = true;
@@ -352,12 +499,16 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                     firstClick = true;
                                     paused = false;
                                     pauseButton = false;
+                                    win = false;
+                                    rCount = 0;
+                                    fleader = true;
+                                    flagsPlaced = 0;
                                 }
                                 if (button.getName() == "debug" && !blockButton && !pauseButton) {
                                     debugMode = !debugMode;
                                 }
                                 if (button.getName() == "pause" && !blockButton) {
-                                    cout << button.getName() << " is working bub" << endl;
+                                    // cout << button.getName() << " is working bub" << endl;
                                     paused = !paused;
                                     if (paused) {
                                         buttons[2].setTexture(text.text("play"));
@@ -369,7 +520,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
 
                                 }
                                 if (button.getName() == "leaderboard") {
-                                    cout << button.getName() << " is working bub" << endl;
+                                    // cout << button.getName() << " is working bub" << endl;
                                     paused = !paused;
                                     if (!pauseButton) {
                                         blockClick = !blockClick;
@@ -383,11 +534,17 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                 }
             }
         }
+        if (!paused && !pauseButton && !blockClick && !win) {
+            auto now = chrono::high_resolution_clock::now();
+            timepassed = chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count();
+        }
         // Render loop
         window.clear(sf::Color::White);
         for (Tile& tile: tiles) {
             tile.draw(window, debugMode, (paused || pauseButton));
         }
+        drawMineCount(window, text, mines - flagsPlaced, row);
+        drawTimer(window, text, timepassed, row, col);
         for (Button& button: buttons) {
             button.draw(window);
         }
@@ -419,7 +576,7 @@ int main() {
     if (welcome) {
         width = col * 32;
         height = (row * 32) + 100;
-        sf::RenderWindow window(sf::VideoMode(width, height), "Minesweeper");
+        sf::RenderWindow window(sf::VideoMode(width, height), "Welcome Window");
         int usernamelength = 0;
 
         while(window.isOpen()) {
@@ -462,7 +619,7 @@ int main() {
     if (game) {
         width = col * 32;
         height = (row * 32) + 100;
-        sf::RenderWindow gameWindow(sf::VideoMode(width, height), "Game Screen");
+        sf::RenderWindow gameWindow(sf::VideoMode(width, height), "Game Window");
         Window(gameWindow, 2, row, col, width, height, username);
         TextureManager texture;
         GameScreen(gameWindow,texture, col, row, mines, width, height, username);
