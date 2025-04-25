@@ -111,11 +111,10 @@ void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf:
     }
 }
 
-string LeaderboardInfo(string& username, bool win = false, bool first = false) {
+string LeaderboardInfo(string& username, bool win = false, bool first = false, int endTime = 0) {
     string longtext;
     string path = "files/leaderboard.txt";
     vector<int> times;
-    bool special;
     //if the player won, puts their time into the file
     if (first) {
         if (win) {
@@ -124,7 +123,10 @@ string LeaderboardInfo(string& username, bool win = false, bool first = false) {
                 std::cerr << "Error opening file" << std::endl;
                 return longtext;
             }
-            outp << "\n00:00" << ", " << username;
+            int minutes = endTime / 60;
+            int seconds = endTime % 60;
+
+            outp << "\n" << minutes << ":" << seconds << ", " << username;
             outp.close();
         }
     }
@@ -137,6 +139,9 @@ string LeaderboardInfo(string& username, bool win = false, bool first = false) {
     vector<int> hours;
     vector<int> minutes;
     vector<string> names;
+
+    int specialIndex = -1;
+    bool special = false;
 
     string line;
     while (getline(file, line)) {
@@ -151,9 +156,9 @@ string LeaderboardInfo(string& username, bool win = false, bool first = false) {
         }
     }
     //make sure the special index doesn't get lost
-    int specialIndex;
-    if (special) {
+    if (first && win) {
         specialIndex = hours.size()-1;
+        special = true;
     }
     //reads the file, seperates them into hours : minutes, compares the hours to hours, then if they are the same compare the minutes, if its smaller than they swap essentially
     for (int i = 0; i < hours.size(); ++i) {
@@ -294,16 +299,15 @@ vector<int> timerDigits(int ttime) {
 
     vector<int> digits;
 
-    digits.push_back(minutes / 10);       // Minute tens
-    digits.push_back(minutes % 10);       // Minute ones
-    digits.push_back(seconds / 10);       // Second tens
-    digits.push_back(seconds % 10);       // Second ones
+    digits.push_back(minutes / 10);
+    digits.push_back(minutes % 10);
+    digits.push_back(seconds / 10);
+    digits.push_back(seconds % 10);
 
     return digits;
 }
 
-
-void drawMineCount(sf::RenderWindow& window, TextureManager& tex, int mines, int row) {
+void drawMineCount(sf::RenderWindow& window, const TextureManager& tex, int mines, int row) {
     vector<int> digits = counterDigits(mines);
     bool neg = false;
     if (digits[0] == 10) {
@@ -327,12 +331,28 @@ void drawMineCount(sf::RenderWindow& window, TextureManager& tex, int mines, int
     }
 }
 
-void drawTimer(sf::RenderWindow& window, TextureManager tex, int time, int row, int col) {
+void drawTimer(sf::RenderWindow& window, const TextureManager& tex, const int time, const int row, const int col) {
     vector<int> digits = timerDigits(time);
     float y = 32 * (row + 0.5f) + 16;
 
-    float minX;
+    float minX = (32 * col) - 97;
+    float secX = (32 * col) - 54;
+
+    for (int i = 0; i < 2; i++) {
+        sf::Sprite digit;
+        digit.setTexture(tex.dig(digits[i]));
+        digit.setPosition(minX + (i * 21), y);
+        window.draw(digit);
+    }
+
+    for (int i = 2; i < 4; i++) {
+        sf::Sprite digit;
+        digit.setTexture(tex.dig(digits[i]));
+        digit.setPosition(secX + ((i-2) * 21), y);
+        window.draw(digit);
+    }
 }
+
 void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row, int mines, int width, int height, string& username) {
     vector<sf::Texture> tilesforfunction;
     sf::Texture up_texture = text.text("hidden");
@@ -367,10 +387,9 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
 
     //time
     auto startTime = chrono::high_resolution_clock::now();
-    int timepassed = 0;
-    bool tfreeze = false;
+    int totalTime = 0;
+    int showTime = 0;
 
-    // Create the tiles
     vector<Tile> tiles;
 
     generateRandom(tiles, row, col, mines, tilesforfunction, numbers);
@@ -388,10 +407,6 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     Button debug(text.text("debug"), debugX, butY, "debug");
     Button pause(text.text("pause"), pauseX, butY, "pause");
     Button leaderboard(text.text("leaderboard"), leaderboardX, butY, "leaderboard");
-
-    //useless for now
-    // Button lose(text.text("lose"), faceX, butY, "lose");
-    // Button winner(text.text("win"), faceX, butY, "win");
 
     vector<Button> buttons;
     buttons.emplace_back(face);
@@ -411,17 +426,27 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
     bool fleader = true;
     int flagsPlaced = 0;
 
+
     // Mainloop
     while (window.isOpen()) {
         // Event loop
         if (leaderscreen) {
             height = ((row*16) + 50);
             width = (col * 16);
+
             sf::RenderWindow leader(sf::VideoMode(width, height), "Leaderboard Window");
             Window(leader, 3, row, col, (float)width, (float)height, username);
-            string bigtext = LeaderboardInfo(username, win, fleader);
-            fleader = false;
+            string bigtext = LeaderboardInfo(username, win, fleader, showTime);
+
+            auto now = chrono::high_resolution_clock::now();
+            totalTime += chrono::duration_cast<chrono::seconds>(now - startTime).count(); // freeze timer
+
             LeaderboardScreen(leader, bigtext, width, height);
+
+            fleader = false;
+
+            startTime = chrono::high_resolution_clock::now();
+
             leaderscreen = false;
             paused = !paused;
             if (!pauseButton) {
@@ -489,7 +514,6 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                     } else {
                         for (Button& button: buttons) {
                             if (button.isClicked(click.x, click.y)) {
-                                // cout << button.getName() << " was clicked" << endl;
                                 if (button.getName() == "face") {
                                     generateRandom(tiles, row, col, mines, tilesforfunction, numbers);
                                     buttons[0].setTexture(text.text("happy"));
@@ -503,25 +527,29 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                     rCount = 0;
                                     fleader = true;
                                     flagsPlaced = 0;
+                                    totalTime = 0;
+                                    showTime = 0;
+                                    startTime = chrono::high_resolution_clock::now();
                                 }
                                 if (button.getName() == "debug" && !blockButton && !pauseButton) {
                                     debugMode = !debugMode;
                                 }
                                 if (button.getName() == "pause" && !blockButton) {
-                                    // cout << button.getName() << " is working bub" << endl;
                                     paused = !paused;
                                     if (paused) {
                                         buttons[2].setTexture(text.text("play"));
+                                        auto now = chrono::high_resolution_clock::now();
+                                        totalTime += chrono::duration_cast<chrono::seconds>(now - startTime).count();
                                     } else {
                                         buttons[2].setTexture(text.text("pause"));
+                                        startTime = chrono::high_resolution_clock::now();
                                     }
                                     blockClick = !blockClick;
                                     pauseButton = !pauseButton;
 
                                 }
                                 if (button.getName() == "leaderboard") {
-                                    // cout << button.getName() << " is working bub" << endl;
-                                    paused = !paused;
+                                    paused = true;
                                     if (!pauseButton) {
                                         blockClick = !blockClick;
                                         blockButton = !blockButton;
@@ -536,7 +564,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
         }
         if (!paused && !pauseButton && !blockClick && !win) {
             auto now = chrono::high_resolution_clock::now();
-            timepassed = chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count();
+            showTime = totalTime + chrono::duration_cast<chrono::seconds>((now - startTime)).count();
         }
         // Render loop
         window.clear(sf::Color::White);
@@ -544,7 +572,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
             tile.draw(window, debugMode, (paused || pauseButton));
         }
         drawMineCount(window, text, mines - flagsPlaced, row);
-        drawTimer(window, text, timepassed, row, col);
+        drawTimer(window, text, showTime, row, col);
         for (Button& button: buttons) {
             button.draw(window);
         }
