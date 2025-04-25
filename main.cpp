@@ -436,7 +436,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
 
             sf::RenderWindow leader(sf::VideoMode(width, height), "Leaderboard Window");
             Window(leader, 3, row, col, (float)width, (float)height, username);
-            string bigtext = LeaderboardInfo(username, win, false, showTime);
+            string bigtext = LeaderboardInfo(username, win, fleader, showTime);
 
             auto now = chrono::high_resolution_clock::now();
             totalTime += chrono::duration_cast<chrono::seconds>(now - startTime).count(); // freeze timer
@@ -466,12 +466,14 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                 if (event.mouseButton.button == sf::Mouse::Right) {
                     for (Tile& tile: tiles) {
                         if (tile.get_sprite().getGlobalBounds().contains(click.x, click.y) && !blockClick) {
-                            bool Flag = tile.getHasFlag();
-                            tile.toggleFlag();
-                            if (!Flag) {
-                                flagsPlaced++;
-                            } else {
-                                flagsPlaced--;
+                            if (!tile.isRevealed()) {
+                                bool Flag = tile.getHasFlag();
+                                tile.toggleFlag();
+                                if (!Flag) {
+                                    flagsPlaced++;
+                                } else {
+                                    flagsPlaced--;
+                                }
                             }
                         }
                     }
@@ -505,7 +507,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
                                     buttons[0].setTexture(text.text("win"));
                                     debugMode = false;
 
-                                    LeaderboardInfo(username, true, true, showTime);
+                                    // LeaderboardInfo(username, true, true, showTime);
                                 }
                                 if (tile.didIlose()) {
                                     buttons[0].setTexture(text.text("lose"));
@@ -617,7 +619,6 @@ int main() {
                     window.close();
                 }
                 if (event.type == sf::Event::TextEntered) {
-                    std::cout << event.text.unicode << std::endl;
                     if ((event.text.unicode >= 65 && event.text.unicode <= 122) && usernamelength < 10) {
                         username += event.text.unicode;
                         usernamelength++;
