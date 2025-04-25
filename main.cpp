@@ -80,8 +80,6 @@ void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf:
         if (randIndex != startIndex && !tiles[randIndex].IsMine()) {
             tiles[randIndex].toggleMine();
             placedMines++;
-
-            // cout << "bomb tile: " << randIndex << "----" << endl;
         }
     }
 
@@ -465,7 +463,6 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
             }
             if (event.type == sf::Event::EventType::MouseButtonPressed) {
                 auto click = event.mouseButton;
-                // cout << click.x << " , " << click.y << endl;
                 if (event.mouseButton.button == sf::Mouse::Right) {
                     for (Tile& tile: tiles) {
                         if (tile.get_sprite().getGlobalBounds().contains(click.x, click.y) && !blockClick) {
@@ -598,7 +595,6 @@ int main() {
     int row;
     int mines;
     file >> col >> row >> mines;
-    std::cout << col << " " << row << " " << mines << std::endl;
 
     int width;
     int height;
@@ -635,7 +631,6 @@ int main() {
                             welcome = false;
                             game = true;
                             window.close();
-                            std::cout << username << std::endl;
                         }
                     }
 

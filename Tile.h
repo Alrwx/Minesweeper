@@ -1,9 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <string>
 #include <vector>
-#include "TextureManager.h"
-// #include <iostream> testing out w/ cout
 
 
 using namespace std;
