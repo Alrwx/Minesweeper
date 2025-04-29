@@ -4,7 +4,7 @@ A fully-featured version of the classic **Minesweeper** game, developed in **C++
 
 ---
 
-### 🚀 How to Run
+### 🚀 How to Run (Windows Only)
 
 1. Open the extracted folder.
 
@@ -18,7 +18,7 @@ A fully-featured version of the classic **Minesweeper** game, developed in **C++
 
 - **🔧 Dynamic Game Configuration**  
   Board dimensions and mine count are loaded from an external `config.cfg` file.
-     *(Third line is the mine count which can be changed through editing the file)*
+     - *(Third line is the mine count which can be changed through editing the file)*
 
 - **🙋 Welcome Screen**
     - Player enters their name (up to 10 alphabetic characters)
@@ -87,6 +87,5 @@ A fully-featured version of the classic **Minesweeper** game, developed in **C++
 
 - **Missing DLL error?** Make sure you didn’t forget to extract all the files.
 - **Nothing happens when you click?** Try running as Administrator.
-- **Still stuck?** [Open an issue](#) or message me directly.
 
 ---
