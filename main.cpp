@@ -10,7 +10,7 @@
 
 using namespace std;
 
-void setText(sf::Text &text, float x, float y){
+void setText(sf::Text &text, const float x, const float y){
     sf::FloatRect textRect = text.getLocalBounds();
     text.setOrigin(textRect.left + textRect.width/2.0f, textRect.top + textRect.height/2.0f);
     text.setPosition(sf::Vector2f(x, y));
@@ -36,7 +36,7 @@ void WriteText(sf::RenderWindow& window, const std::string& text, bool bold, boo
     window.draw(word);
 }
 
-void Window(sf::RenderWindow &window, int type, int row, int col, float width, float height, const string& username) {
+void Window(sf::RenderWindow &window, const int type, const int row, const int col, const float width, const float height, const string& username) {
     //this function lays the base for the window
     if (type == 1) {
         window.clear(sf::Color::Blue);
@@ -55,7 +55,7 @@ void Window(sf::RenderWindow &window, int type, int row, int col, float width, f
     }
 }
 
-void generateRandom(vector<Tile>& tiles, int row, int col, int mines, vector<sf::Texture>& texters, vector<sf::Texture>& numbers, int startIndex = -1) {
+void generateRandom(vector<Tile>& tiles, const int row, const int col, const int mines, vector<sf::Texture>& texters, vector<sf::Texture>& numbers, const int startIndex = -1) {
     tiles.clear();
 
     //makes all the tiles
@@ -185,15 +185,16 @@ string LeaderboardInfo(string& username, bool win = false, bool first = false, i
             }
         }
     }
-    //since its only top 5, it takes either the first 5, or if the leaderboard txt has less than 5
-    int five;
-    if (hours.size() > 5) {
-        five = 5;
+    //since its only top 7, it takes either the first 5, or if the leaderboard txt has less than 7
+//changed it to 7 now
+    int top;
+    if (hours.size() > 7) {
+        top = 7;
     } else {
-        five = hours.size();
+        top = hours.size();
     }
     // makes one really big string
-    for (int i = 0; i < five; i++) {
+    for (int i = 0; i < top; i++) {
         string shour = (hours[i] < 10 ? "0" : "") + to_string(hours[i]);
         string smins = (minutes[i] < 10 ? "0" : "") + to_string(minutes[i]);
 
@@ -209,7 +210,7 @@ string LeaderboardInfo(string& username, bool win = false, bool first = false, i
     return longtext;
 }
 
-void LeaderboardScreen(sf::RenderWindow& window, const string& longtext, float width, float height) {
+void LeaderboardScreen(sf::RenderWindow& window, const string& longtext, const float width, const float height) {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -219,13 +220,13 @@ void LeaderboardScreen(sf::RenderWindow& window, const string& longtext, float w
             }
         }
         window.clear(sf::Color::Blue);
-        WriteText(window, "LEADERBOARD", true, true, sf::Color::White, 20, width/2, ((height/2) - 120));
+        WriteText(window, "LEADERBOARD", true, true, sf::Color::White, 20, width/2, ((height/2) - 140));
         WriteText(window, longtext, true, false, sf::Color::White, 18, width/2, height/2 + 20);
         window.display();
     }
 }
 
-void RecReveal(vector<Tile>& tiles, int x, int y, int col, int row, int& rcount) {
+void RecReveal(vector<Tile>& tiles, const int x, const int y, const int col, const int row, int& rcount) {
     int place = x * row + y;
 
     //base case
@@ -256,7 +257,7 @@ void RecReveal(vector<Tile>& tiles, int x, int y, int col, int row, int& rcount)
     }
 }
 
-bool checkWin(vector<Tile>& tiles, int col, int row, int mines, int rCount, bool& win, bool& blockClick, bool& blockButton) {
+bool checkWin(vector<Tile>& tiles, const int col, const int row, const int mines, const int rCount, bool& win, bool& blockClick, bool& blockButton) {
     //sees if the revealed count = the number of non-mine spaces
     if (rCount == (col * row - mines)) {
         win = true;
@@ -274,9 +275,18 @@ bool checkWin(vector<Tile>& tiles, int col, int row, int mines, int rCount, bool
     return false;
 }
 
-vector<int> counterDigits(int mines) {
+vector<int> counterDigits(const int mines, const bool win) {
     vector<int> counterDigits;
-    bool neg = false;;
+    bool neg = false;
+
+
+    if (win) {
+        counterDigits.push_back(0);
+        counterDigits.push_back(0);
+        counterDigits.push_back(0);
+        return counterDigits;
+    }
+
     if (mines < 0) {
         neg = true;
     }
@@ -290,10 +300,12 @@ vector<int> counterDigits(int mines) {
     counterDigits.push_back((tmines / 10) % 10);
     counterDigits.push_back(tmines % 10);
 
+
+
     return counterDigits;
 }
 
-vector<int> timerDigits(int ttime) {
+vector<int> timerDigits(const int ttime) {
     int minutes = ttime / 60;
     int seconds = ttime % 60;
 
@@ -307,8 +319,8 @@ vector<int> timerDigits(int ttime) {
     return digits;
 }
 
-void drawMineCount(sf::RenderWindow& window, const TextureManager& tex, int mines, int row) {
-    vector<int> digits = counterDigits(mines);
+void drawMineCount(sf::RenderWindow& window, const TextureManager& tex, const int mines, const int row, const bool win) {
+    vector<int> digits = counterDigits(mines, win);
     bool neg = false;
     if (digits[0] == 10) {
         neg = true;
@@ -353,7 +365,7 @@ void drawTimer(sf::RenderWindow& window, const TextureManager& tex, const int ti
     }
 }
 
-void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row, int mines, int width, int height, string& username) {
+void GameScreen(sf::RenderWindow &window, TextureManager &text, const int col, const int row, int mines, int width, int height, string& username) {
     vector<sf::Texture> tilesforfunction;
     sf::Texture up_texture = text.text("hidden");
     sf::Texture down_texture = text.text("revealed");
@@ -599,7 +611,7 @@ void GameScreen(sf::RenderWindow &window, TextureManager &text, int col, int row
         for (Tile& tile: tiles) {
             tile.draw(window, debugMode, (actuallyPaused || paused));
         }
-        drawMineCount(window, text, mines - flagsPlaced, row);
+        drawMineCount(window, text, mines - flagsPlaced, row, win);
         drawTimer(window, text, showTime, row, col);
         for (Button& button: buttons) {
             button.draw(window);
@@ -627,12 +639,39 @@ int main() {
     std::string username;
     bool welcome = true;
     bool game = false;
+    int diff = 1;
+
+    sf::Font font;
+    font.loadFromFile("files/font.ttf");
 
     if (welcome) {
         width = col * 32;
         height = (row * 32) + 100;
         sf::RenderWindow window(sf::VideoMode(width, height), "Welcome Window");
         int usernamelength = 0;
+
+        float diffX = static_cast<float>(width) / 2.0f;
+        float diffY = static_cast<float>(height) /2 + 50.0f;
+
+        sf::Text easyDiff;
+        easyDiff.setFont(font);
+        easyDiff.setString("Easy");
+        easyDiff.setCharacterSize(18);
+        easyDiff.setFillColor(sf::Color::Green);
+        easyDiff.setPosition(sf::Vector2f(diffX-150, diffY));
+        sf::Text medDiff;
+        medDiff.setFont(font);
+        medDiff.setString("Medium");
+        medDiff.setCharacterSize(18);
+        medDiff.setFillColor(sf::Color::Yellow);
+        medDiff.setPosition(sf::Vector2f(diffX-30, diffY));
+        sf::Text hardDiff;
+        hardDiff.setFont(font);
+        hardDiff.setString("Hard");
+        hardDiff.setCharacterSize(18);
+        hardDiff.setFillColor(sf::Color::Red);
+        hardDiff.setPosition(sf::Vector2f(diffX+120, diffY));
+
 
         while(window.isOpen()) {
             sf::Event event;
@@ -662,14 +701,50 @@ int main() {
                         username[i] = std::tolower(username[i]);
                     }
                 }
+                if (event.type == sf::Event::EventType::MouseButtonPressed) {
+                    auto click = event.mouseButton;
+                    if (event.mouseButton.button == sf::Mouse::Left) {
+                        if (easyDiff.getGlobalBounds().contains(click.x, click.y)) {
+                            easyDiff.setStyle(sf::Text::Bold | sf::Text::Underlined);
+                            medDiff.setStyle(sf::Text::Regular);
+                            hardDiff.setStyle(sf::Text::Regular);
+                            diff = 0;
+                        }
+                        if (medDiff.getGlobalBounds().contains(click.x, click.y)) {
+                            medDiff.setStyle(sf::Text::Bold | sf::Text::Underlined);
+                            hardDiff.setStyle(sf::Text::Regular);
+                            easyDiff.setStyle(sf::Text::Regular);
+                            diff = 1;
+                        }
+                        if (hardDiff.getGlobalBounds().contains(click.x, click.y)) {
+                            hardDiff.setStyle(sf::Text::Bold | sf::Text::Underlined);
+                            easyDiff.setStyle(sf::Text::Regular);
+                            medDiff.setStyle(sf::Text::Regular);
+                            diff = 2;
+                        }
+                    }
+                }
             }
 
             Window(window, 1, row, col, width, height, username);
-
+            window.draw(easyDiff);
+            window.draw(medDiff);
+            window.draw(hardDiff);
             window.display();
         }
     }
     if (game) {
+        if (diff == 0) {
+            if (mines != 0 ) {
+                mines = mines / 2;
+            }
+        } else if (diff == 2) {
+            if ((mines*2) < (row * col) - 1) {
+                mines = mines * 2;
+            }
+        } else {
+            mines = mines + 0;
+        }
         width = col * 32;
         height = (row * 32) + 100;
         sf::RenderWindow gameWindow(sf::VideoMode(width, height), "Game Window");
