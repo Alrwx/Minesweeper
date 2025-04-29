@@ -4,30 +4,17 @@ A fully-featured version of the classic **Minesweeper** game, developed in **C++
 
 ---
 
-### 🚀 How to Run
-
-1. Open the extracted folder.
-
-2. Double-click **`minesweeper.exe`** to launch the game.
-
-3. That's it! You're in. 🎉
-
----
-
-> ⚠️ **Do not delete or move the `files/` folder!**  
-> The game needs it to run properly (for textures, fonts, config, etc.)
-
----
-
 ## 📋 Features
 
 - **🔧 Dynamic Game Configuration**  
   Board dimensions and mine count are loaded from an external `config.cfg` file.
+     *(Third line is the mine count which can be changed through editing the file)*
 
 - **🙋 Welcome Screen**
     - Player enters their name (up to 10 alphabetic characters)
     - Real-time formatting (e.g., `bRUCe` → `Bruce`)
     - Backspace support and a visible cursor indicator
+    - Difficulty Selector: Easy, Medium, Hard
 
 - **💣 Core Gameplay**
     - Left-click to reveal a tile
@@ -73,12 +60,26 @@ A fully-featured version of the classic **Minesweeper** game, developed in **C++
 
 ### 📥 Download Instructions
 
-1. Navigate to the **[Releases](#)** section of this repository.  
-   *(Replace this `#` with your actual GitHub releases link when published)*
+1. Navigate to the **[Releases](https://github.com/Alrwx/Minesweeper/releases/tag/Latest)** section of this repository.  
 
 2. Download the ZIP file (e.g., `Minesweeper_Windows.zip`).
 
 3. Extract the contents to a folder of your choice (e.g., Desktop or Downloads).
+
+---
+
+### 🚀 How to Run
+
+1. Open the extracted folder.
+
+2. Double-click **`minesweeper.exe`** to launch the game.
+
+3. That's it! You're in. 🎉
+
+---
+
+> ⚠️ **Do not delete or move the `files/` folder!**  
+> The game needs it to run properly (for textures, fonts, config, etc.)
 
 ---
 
