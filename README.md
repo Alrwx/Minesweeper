@@ -4,6 +4,16 @@ A fully-featured version of the classic **Minesweeper** game, developed in **C++
 
 ---
 
+### 🚀 How to Run
+
+1. Open the extracted folder.
+
+2. Double-click **`minesweeper.exe`** to launch the game.
+
+3. That's it! You're in. 🎉
+
+---
+
 ## 📋 Features
 
 - **🔧 Dynamic Game Configuration**  
@@ -65,16 +75,6 @@ A fully-featured version of the classic **Minesweeper** game, developed in **C++
 2. Download the ZIP file (e.g., `Minesweeper_Windows.zip`).
 
 3. Extract the contents to a folder of your choice (e.g., Desktop or Downloads).
-
----
-
-### 🚀 How to Run
-
-1. Open the extracted folder.
-
-2. Double-click **`minesweeper.exe`** to launch the game.
-
-3. That's it! You're in. 🎉
 
 ---
 
